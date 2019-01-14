@@ -51,7 +51,7 @@ class Ulogger(object):
     A decorator for variant use
     '''
 
-    def __init__(self, ltype='inout', logger=None, *args, **kwargs):
+    def __init__(self, ltype='exe', logger=None, *args, **kwargs):
         self.ltype = ltype
         if logger is None:
             logger = create_logger()
@@ -63,8 +63,8 @@ class Ulogger(object):
     
     def __call__(self, *args, **kwargs):
         if self.mode == 'decorating':
-            if self.ltype == 'inout':
-                self.func = self.inout_logger(args[0], *self.args, **self.kwargs)
+            if self.ltype == 'execution':
+                self.func = self.exe_logger(args[0], *self.args, **self.kwargs)
             elif self.ltype == 'exception':
                 self.func = self.exception_logger(args[0], *self.args, **self.kwargs)
             self.mode = 'calling'
@@ -72,7 +72,7 @@ class Ulogger(object):
         r = self.func(*args, **kwargs)
         return r
 
-    def inout_logger(self, func):
+    def exe_logger(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
             self.logger.info('{}() - Starting execution...'.format(func.__name__))
