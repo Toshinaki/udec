@@ -10,6 +10,7 @@
 import logging
 from functools import wraps, partial
 from pathlib import Path
+from inspect import isclass
 
 ###############################################################################
 ## CONSTANTS & HELPER FUNCTIONS
@@ -51,10 +52,8 @@ class Ulogger(object):
     A decorator for variant use
     '''
 
-    def __init__(self, ltype='exe', logger=None, *args, **kwargs):
+    def __init__(self, ltype='excexe', logger=None, *args, **kwargs):
         self.ltype = ltype
-        if logger is None:
-            logger = create_logger()
         self.logger = logger
         self.args = args
         self.kwargs = kwargs
@@ -67,10 +66,21 @@ class Ulogger(object):
                 self.func = self.exe_logger(args[0], *self.args, **self.kwargs)
             elif self.ltype == 'exception':
                 self.func = self.exception_logger(args[0], *self.args, **self.kwargs)
+            elif self.ltype == 'excexe':
+                self.func = self.excexe_logger(args[0], *self.args, **self.kwargs)
             self.mode = 'calling'
             return self
+        
+        if len(args) > 0:
+            if hasattr(args[0], 'logger'):
+                self.logger = args[0].logger
+        elif self.logger is None:
+            self.logger = create_logger()
         r = self.func(*args, **kwargs)
         return r
+
+    def __get__(self, instance, cls):
+        return partial(self.__call__, instance)
 
     def exe_logger(self, func):
         @wraps(func)
@@ -92,6 +102,23 @@ class Ulogger(object):
                     raise
                 else:
                     return False
+        return decorator
+    
+    def excexe_logger(self, func, re_raise=True):
+        @wraps(func)
+        def decorator(*args, **kwargs):
+            self.logger.info('{}() - Starting execution...'.format(func.__name__))
+            try:
+                r = func(*args, **kwargs)
+            except Exception as e:
+                self.logger.exception('{}() - A {} occurred.'.format(func.__name__, e.__class__.__name__))
+                if re_raise:
+                    raise
+                else:
+                    return False
+            else:
+                self.logger.info('{}() - Execution ended'.format(func.__name__))
+                return r
         return decorator
 
 
